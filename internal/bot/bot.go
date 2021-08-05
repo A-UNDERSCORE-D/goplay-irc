@@ -28,6 +28,7 @@ type BotConfig struct {
 	Server       string   `toml:"server"`
 	UseTLS       bool     `toml:"use_tls"`
 	JoinChannels []string `toml:"join_channels"`
+	Debug        bool     `toml:"debug"`
 }
 
 type Bot struct {
@@ -50,9 +51,9 @@ func New(c *BotConfig) *Bot {
 		UseTLS:          c.UseTLS,
 		UseSASL:         c.SASLPassword != "" && c.SASLUser != "",
 		EnableCTCP:      true,
-		Debug:           true,
 		AllowTruncation: true,
 		Log:             log.Default(),
+		Debug:           c.Debug,
 	}
 
 	b := &Bot{config: c, irc: conn, commands: make(map[string]*Command)}
@@ -66,6 +67,7 @@ func (b *Bot) init() {
 	b.createCommand("play", true, b.runPlayLink)
 	b.createCommand("playerrors", true, b.playErrors)
 	b.irc.AddConnectCallback(func(_ ircmsg.Message) {
+		log.Println("Connected!")
 		for _, ch := range b.config.JoinChannels {
 			b.irc.Join(ch)
 		}
@@ -73,6 +75,7 @@ func (b *Bot) init() {
 }
 
 func (b *Bot) Run() {
+	log.Println("Connecting....")
 	if err := b.irc.Connect(); err != nil {
 		panic(err)
 	}
@@ -132,6 +135,11 @@ func (b *Bot) onPrivmsg(msg ircmsg.Message) {
 	if !cmdExists {
 		return
 	}
+
+	log.Printf(
+		"Running command %s for user %s in channel %s with args %q",
+		cmd.name, replyTarget, msg.Params[0], rest,
+	)
 
 	replyFunc := func(s string, a ...interface{}) error {
 		if len(a) == 0 {
