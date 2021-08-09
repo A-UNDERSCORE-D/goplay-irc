@@ -16,6 +16,7 @@ import (
 	"golang.org/x/tools/imports"
 )
 
+// BotConfig represents the config for Bot, and can be unmarshalled directly from toml
 type BotConfig struct {
 	Nick            string `toml:"nick"`
 	User            string `toml:"user"`
@@ -31,6 +32,7 @@ type BotConfig struct {
 	Debug        bool     `toml:"debug"`
 }
 
+// Bot is an IRC bot and command handler
 type Bot struct {
 	config *BotConfig
 	irc    *ircevent.Connection
@@ -39,6 +41,7 @@ type Bot struct {
 	messageQueue chan ircmsg.Message
 }
 
+// New creates a new bot with the given config.
 func New(c *BotConfig) *Bot {
 	conn := &ircevent.Connection{
 		Server:          c.Server,
@@ -74,6 +77,7 @@ func (b *Bot) init() {
 	})
 }
 
+// Run connects the bot to IRC, and blocks forever
 func (b *Bot) Run() {
 	log.Println("Connecting....")
 	if err := b.irc.Connect(); err != nil {
@@ -156,6 +160,8 @@ func (b *Bot) onPrivmsg(msg ircmsg.Message) {
 	}
 }
 
+// EvalCommand is the callback for the `eval` IRC command. It wraps the passed argument in some boilerplate to make it
+// valid go source, resolves any imports it can, formats it, and executes it on the go playground
 func (b *Bot) EvalCmd(args string, reply ReplyFunc) {
 	if strings.TrimSpace(args) == "" {
 		reply("Cannot eval empty code")
@@ -258,7 +264,7 @@ func (b *Bot) runCode(code string, doShare, doImports, doFormat bool) (*goplay.R
 }
 
 func extractPlaySnippetID(source string) (string, error) {
-	matches := goplaygroundURIValidRE.FindStringSubmatch(source)
+	matches := goplaygroundURIValidRe.FindStringSubmatch(source)
 	if matches != nil {
 		return matches[1], nil
 	}
@@ -302,7 +308,9 @@ func downloadPlaySnippet(source string) (string, error) {
 	return string(data), nil
 }
 
-func (b *Bot) runPlayLink(args string, reply ReplyFunc) {
+// PlayRun runs the given go playground link and responds with either the errors, its the callback for the
+// ~runplay command
+func (b *Bot) PlayRun(args string, reply ReplyFunc) {
 	if args == "" {
 		reply("Cannot parse an empty link / URL")
 		return
@@ -335,7 +343,8 @@ func (b *Bot) runPlayLink(args string, reply ReplyFunc) {
 	}
 }
 
-func (b *Bot) playErrors(args string, reply ReplyFunc) {
+// PlayCmd is the callback for the ~play IRC command, and responds with any errors the playground code has
+func (b *Bot) PlayCmd(args string, reply ReplyFunc) {
 	if args == "" {
 		reply("Cannot parse an empty link / URL")
 		return
