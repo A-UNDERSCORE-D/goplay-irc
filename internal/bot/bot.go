@@ -103,6 +103,7 @@ func (b *Bot) createCommand(name string, goroutine bool, callback Callback) {
 
 func (b *Bot) onPrivmsg(msg ircmsg.Message) {
 	replyTarget := msg.Params[0]
+	sourceNick, _, _ := ircevent.SplitNUH(msg.Prefix)
 	if replyTarget == b.irc.CurrentNick() {
 		replyTarget, _, _ = ircevent.SplitNUH(msg.Prefix)
 	}
@@ -145,7 +146,7 @@ func (b *Bot) onPrivmsg(msg ircmsg.Message) {
 		if len(a) == 0 {
 			return b.irc.Privmsg(replyTarget, s)
 		}
-		return b.irc.Privmsgf(replyTarget, s, a...)
+		return b.irc.Privmsgf(replyTarget, fmt.Sprintf("(%s) %s", sourceNick, s), a...)
 	}
 
 	if cmd.goroutine {
