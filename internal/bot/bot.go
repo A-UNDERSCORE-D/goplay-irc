@@ -194,7 +194,21 @@ func (b *Bot) EvalCmd(args string, reply ReplyFunc) {
 }
 
 func ExtractFirstLine(s string) string {
-	return strings.TrimSpace(strings.SplitN(s, "\n", 2)[0])
+	trimmed := strings.TrimSpace(strings.SplitN(s, "\n", 2)[0])
+
+	hasNonPrintables := false
+	for _, c := range trimmed {
+		if !unicode.IsPrint(c) {
+			hasNonPrintables = true
+			break
+		}
+	}
+
+	if hasNonPrintables {
+		return "Output suppressed, non-printable characters detected."
+	}
+
+	return strings.ReplaceAll(trimmed, "\x07", "")
 }
 
 var (
