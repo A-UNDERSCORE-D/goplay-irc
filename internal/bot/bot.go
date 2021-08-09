@@ -347,6 +347,7 @@ func (b *Bot) PlayRun(args string, reply ReplyFunc) {
 	code, err := downloadPlaySnippet(args)
 	if err != nil {
 		log.Print(err)
+		reply("Unable to download snippet: %q", err)
 		return
 	}
 
