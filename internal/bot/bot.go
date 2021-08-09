@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircmsg"
@@ -110,6 +111,8 @@ func (b *Bot) createCommand(name string, goroutine bool, callback Callback, help
 	}
 }
 
+const minMsgLen = len("PRIVSG  :")
+
 func (b *Bot) onPrivmsg(msg ircmsg.Message) {
 	replyTarget := msg.Params[0]
 	sourceNick, _, _ := ircevent.SplitNUH(msg.Prefix)
@@ -155,7 +158,9 @@ func (b *Bot) onPrivmsg(msg ircmsg.Message) {
 		if len(a) == 0 {
 			return b.irc.Privmsg(replyTarget, s)
 		}
-		return b.irc.Privmsgf(replyTarget, fmt.Sprintf("(%s) %s", sourceNick, s), a...)
+
+		outMsg := fmt.Sprintf("(%s) %s", sourceNick, fmt.Sprintf(s, a...))
+		return b.irc.Privmsgf(replyTarget, safeTrunk(outMsg, 450-(minMsgLen+len(replyTarget)+2)))
 	}
 
 	if cmd.goroutine {
@@ -163,6 +168,21 @@ func (b *Bot) onPrivmsg(msg ircmsg.Message) {
 	} else {
 		cmd.callback(rest, replyFunc)
 	}
+}
+
+// safeTrunk trunkates a string to a valid unicode output, if possible.
+func safeTrunk(s string, length int) string {
+	if len(s) < length {
+		return s
+	}
+
+	for i := 0; i < 5; i++ {
+		if utf8.ValidString(s[:length-i]) {
+			return s[:length-i]
+		}
+	}
+
+	return "Unable to trunkate safely."
 }
 
 // HelpCmd responds with help for commands.
