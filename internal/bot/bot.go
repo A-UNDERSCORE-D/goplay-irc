@@ -347,6 +347,7 @@ func (b *Bot) PlayRun(args string, reply ReplyFunc) {
 	code, err := downloadPlaySnippet(args)
 	if err != nil {
 		log.Print(err)
+		return
 	}
 
 	runRes, _, err := b.runCode(code, false, false, false)
