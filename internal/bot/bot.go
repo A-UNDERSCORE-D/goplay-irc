@@ -210,7 +210,7 @@ func (b *Bot) EvalCmd(args string, reply ReplyFunc) {
 	if len(res.Errors) != 0 {
 		// Compile failed
 		log.Print("Error while running compile: ", res.Errors)
-		reply(fmt.Sprintf("Compile failed! %s", strings.TrimSpace(res.Errors)))
+		reply(strings.TrimSpace(res.Errors))
 		return
 	}
 
@@ -223,7 +223,7 @@ func (b *Bot) EvalCmd(args string, reply ReplyFunc) {
 		if len(res.Events) > 1 {
 			extraInfo = fmt.Sprintf(" (First line only. %d events returned)", len(res.Events))
 		}
-		reply("Complete %s%s : %s", shareLink, extraInfo, ExtractFirstLine(res.Events[0].Message))
+		reply("%s%s : %s", shareLink, extraInfo, ExtractFirstLine(res.Events[0].Message))
 	}
 }
 
@@ -267,8 +267,9 @@ func (b *Bot) runCode(code string, doShare, doImports, doFormat bool) (*goplay.R
 			FormatOnly: !doImports,
 		})
 	}
+
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("could not format / imports source: %w", err)
 	}
 
 	var share string
@@ -284,7 +285,7 @@ func (b *Bot) runCode(code string, doShare, doImports, doFormat bool) (*goplay.R
 
 	res, err := goplay.DefaultClient.Compile(bytes.NewReader(codeBytes))
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("error from goplay: %w", err)
 	}
 
 	return res, share, nil
