@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"unicode"
 
 	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircmsg"
@@ -66,9 +67,10 @@ func New(c *BotConfig) *Bot {
 
 func (b *Bot) init() {
 	b.irc.AddCallback("PRIVMSG", b.onPrivmsg)
-	b.createCommand("eval", true, b.EvalCmd)
-	b.createCommand("play", true, b.runPlayLink)
-	b.createCommand("playerrors", true, b.playErrors)
+	b.createCommand("eval", true, b.EvalCmd, "Evaluates the given go string. Imports are automatically resolved (stdlib only)")
+	b.createCommand("playrun", true, b.PlayRun, "Runs the given play link, returning errors and output (if any)")
+	b.createCommand("play", true, b.PlayCmd, "Lists any errors the given play link may have")
+	b.createCommand("help", false, b.HelpCmd, "This output.")
 	b.irc.AddConnectCallback(func(_ ircmsg.Message) {
 		log.Println("Connected!")
 		for _, ch := range b.config.JoinChannels {
@@ -91,15 +93,18 @@ type (
 	Callback  func(args string, reply ReplyFunc)
 )
 
+// Command represents a single IRC command and its callback.
 type Command struct {
 	name      string
+	help      string
 	callback  Callback
-	goroutine bool
+	goroutine bool // Should this callback be run in a goroutine?
 }
 
-func (b *Bot) createCommand(name string, goroutine bool, callback Callback) {
+func (b *Bot) createCommand(name string, goroutine bool, callback Callback, help string) {
 	b.commands[name] = &Command{
 		name:      name,
+		help:      help,
 		callback:  callback,
 		goroutine: goroutine,
 	}
@@ -158,6 +163,28 @@ func (b *Bot) onPrivmsg(msg ircmsg.Message) {
 	} else {
 		cmd.callback(rest, replyFunc)
 	}
+}
+
+// HelpCmd responds with help for commands.
+func (b *Bot) HelpCmd(args string, reply ReplyFunc) {
+	args = strings.TrimSpace(args)
+	if args == "" {
+		out := []string{}
+		for c := range b.commands {
+			out = append(out, c)
+		}
+
+		reply("Available Commands (use %shelp $cmd for more info): %s", b.config.CommandPrefix, strings.Join(out, ", "))
+		return
+	}
+
+	cmd, ok := b.commands[args]
+	if !ok {
+		reply("Unknown command %q", args)
+		return
+	}
+
+	reply("Help for %q: %s", cmd.name, cmd.help)
 }
 
 // EvalCommand is the callback for the `eval` IRC command. It wraps the passed argument in some boilerplate to make it
