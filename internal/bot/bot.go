@@ -148,7 +148,7 @@ func (b *Bot) onPrivmsg(msg ircmsg.Message) {
 
 	log.Printf(
 		"Running command %s for user %s in channel %s with args %q",
-		cmd.name, replyTarget, msg.Params[0], rest,
+		cmd.name, msg.Prefix, msg.Params[0], rest,
 	)
 
 	replyFunc := func(s string, a ...interface{}) error {
