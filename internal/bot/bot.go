@@ -213,7 +213,7 @@ func ExtractFirstLine(s string) string {
 
 var (
 	snippetValidRe         = regexp.MustCompile(`[a-zA-Z0-9]{8,}(?:\.go)?`)
-	goplaygroundURIValidRE = regexp.MustCompile(`^(?:https?://)?play.golang.org/p/([a-zA-Z0-9]{8,}(?:\.go)?)$`)
+	goplaygroundURIValidRe = regexp.MustCompile(`^(?:https?://)?play.golang.org/p/([a-zA-Z0-9]{8,}(?:\.go)?)$`)
 )
 
 func snippetIsValid(snippet string) bool {
