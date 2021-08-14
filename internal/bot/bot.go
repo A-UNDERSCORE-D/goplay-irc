@@ -225,6 +225,7 @@ func (b *Bot) EvalCmd(args string, reply ReplyFunc) {
 	if err != nil {
 		log.Print("Error while sending request: ", err)
 		reply(fmt.Sprintf("Error occurred: %s", err))
+		return
 	}
 
 	if len(res.Errors) != 0 {
